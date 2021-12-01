@@ -222,14 +222,6 @@ tls_generate_script_install() {
     fi
     sucess_or_fail "安装 tls 证书生成脚本依赖"
 
-    curl https://get.acme.sh | sh
-    sucess_or_fail "安装 tls 证书生成脚本"
-    source ~/.bashrc
-}
-tls_generate() {
-  if [[ -f "/data/${domain}/fullchain.crt" ]] && [[ -f "/data/${domain}/privkey.key" ]]; then
-    echo -e "${Info}证书已存在……不需要再重新签发了……"
-  else
     if [[ ${email} == "" ]]; then
       read -p "$(echo -e "${Info}请填写您的邮箱：")" email
       read -p "$(echo -e "${Info}邮箱输入正确吗（Y/n）？（默认：n）")" Yn
@@ -241,8 +233,13 @@ tls_generate() {
       done
     fi
     curl https://get.acme.sh | sh -s email=${email}
+    sucess_or_fail "安装 tls 证书生成脚本"
     source ~/.bashrc
-
+}
+tls_generate() {
+  if [[ -f "/data/${domain}/fullchain.crt" ]] && [[ -f "/data/${domain}/privkey.key" ]]; then
+    echo -e "${Info}证书已存在……不需要再重新签发了……"
+  else    
     if "$HOME"/.acme.sh/acme.sh --issue -d "${domain}" --standalone -k ec-256 --force --test; then
         echo -e "${Info} TLS 证书测试签发成功，开始正式签发"
         rm -rf "$HOME/.acme.sh/${domain}_ecc"
