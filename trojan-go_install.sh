@@ -411,7 +411,7 @@ download_install(){
   [[ ! -d ${trojan_dir} ]] && mkdir ${trojan_dir}
   [[ ! -d ${trojan_bin_dir} ]] && mkdir ${trojan_bin_dir}
   if [[ ! -f ${trojan_bin_dir}/trojan-go ]];then
-      latest_version="$(curl -s "https://api.github.com/repos/p4gefau1t/trojan-go/releases" | jq '.[0].tag_name' --raw-output)"
+      latest_version=$(curl -fsSL https://api.github.com/repos/p4gefau1t/trojan-go/releases | grep '"tag_name":' | head -n 1 | sed -E 's/.*"([^"]+)".*/\1/')
       echo "${latest_version}"
       case  ${bit} in
       "x86_64")
