@@ -1,10 +1,10 @@
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/PatrikYang/Trojan-go-OneKey/main/trojan-go_install.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/PatrikYang/Trojan-go-OneKey/main/trojan-go.sh)"
 ```
 
 ```bash
-wget -N --no-check-certificate "https://raw.githubusercontent.com/PatrikYang/Trojan-go-OneKey/main/trojan-go_install.sh"
-chmod +x trojan-go_install.sh
-./trojan-go_install.sh
+wget -N --no-check-certificate "https://raw.githubusercontent.com/PatrikYang/Trojan-go-OneKey/main/trojan-go.sh"
+chmod +x trojan-go.sh
+./trojan-go.sh
 ```
 
