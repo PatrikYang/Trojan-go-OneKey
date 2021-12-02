@@ -21,10 +21,10 @@ Green_font_prefix="\033[32m" && Red_font_prefix="\033[31m" && Green_background_p
 Info="${Green_font_prefix}[信息]${Font_color_suffix}"
 Error="${Red_font_prefix}[错误]${Font_color_suffix}"
 Tip="${Green_font_prefix}[注意]${Font_color_suffix}"
-trojan_dir=/etc/trojan
-trojan_bin_dir=${trojan_dir}/bin
-trojan_conf_dir=${trojan_dir}/conf
-trojan_conf_file=${trojan_conf_dir}/server.json
+trojan_dir=/etc/trojan-go
+trojan_bin_dir=/usr/bin/trojan-go
+trojan_conf_dir=/etc/trojan-go
+trojan_conf_file=/etc/trojan-go/config.json
 trojan_qr_config_file=${trojan_conf_dir}/qrconfig.json
 trojan_systemd_file="/etc/systemd/system/trojan.service"
 web_dir="/usr/wwwroot"
@@ -34,23 +34,22 @@ nginx_conf="${nginx_conf_dir}/default.conf"
 nginx_dir="/etc/nginx"
 nginx_openssl_src="/usr/local/src"
 nginx_systemd_file="/etc/systemd/system/nginx.service"
-caddy_bin_dir="/usr/local/bin"
-caddy_conf_dir="/etc/caddy"
-caddy_conf="${caddy_conf_dir}/Caddyfile"
-caddy_systemd_file="/etc/systemd/system/caddy.service"
 nginx_version="1.18.0"
 openssl_version="1.1.1g"
 jemalloc_version="5.2.1"
 old_config_status="off"
+
 check_root() {
   [[ $EUID != 0 ]] && echo -e "${Error} ${RedBG} 当前非ROOT账号(或没有ROOT权限)，无法继续操作，请执行命令 ${Green_background_prefix}sudo -i${Font_color_suffix} 更换ROOT账号" && exit 1
 }
+
 set_SELINUX() {
   if [ -s /etc/selinux/config ] && grep 'SELINUX=enforcing' /etc/selinux/config; then
     sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
     setenforce 0
   fi
 }
+
 check_sys() {
   if [[ -f /etc/redhat-release ]]; then
     release="centos"
@@ -69,6 +68,7 @@ check_sys() {
   fi
   bit=`uname -m`
 }
+
 sys_cmd(){
   if [[ ${release} == "centos" ]]; then
     cmd="yum"
@@ -76,6 +76,7 @@ sys_cmd(){
     cmd="apt"
   fi
 }
+
 sucess_or_fail() {
     if [[ 0 -eq $? ]]; then
         echo -e "${Info} ${GreenBG} $1 完成 ${Font}"
@@ -85,6 +86,7 @@ sucess_or_fail() {
         exit 1
     fi
 }
+
 GCE_debian10(){
   echo -e "${Tip}${RedBG}因为谷歌云的debian10抽风，所以需要确认您当前是否是谷歌云的debian10系统吗（Y/n）？"
   echo -e "${Tip}${RedBG}只有谷歌云的debian10系统才填y，其他都填n。如果填错，将直接导致您后面无法科学上网（Y/n）(默认：n)${NO_COLOR}"
@@ -98,6 +100,7 @@ GCE_debian10(){
         ;;
     esac
 }
+
 install_dependency() {
   echo -e "${Info}开始升级系统，需要花费几分钟……"
   ${cmd} update -y
@@ -151,11 +154,13 @@ install_dependency() {
   fi
   ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 }
+
 close_firewall() {
   systemctl stop firewalld.service
   systemctl disable firewalld.service
   echo -e "${Info} firewalld 已关闭 ${Font}"
 }
+
 open_port() {
   if [[ ${release} != "centos" ]]; then
     #iptables -I INPUT -p tcp --dport 80 -j ACCEPT
@@ -189,6 +194,7 @@ get_ip() {
   [[ -z ${local_ip} ]] && ${local_ip}=$(curl -s myip.ipip.net | grep -oE "([0-9]{1,3}\.){3}[0-9]{1,3}")
   [[ -z ${local_ip} ]] && echo -e "${Error}获取不到你vps的ip地址" && exit
 }
+
 check_domain() {
   read -rp "请输入您的域名(如果用Cloudflare解析域名，请点击小云彩使其变灰):" domain
   real_ip=$(ping "${domain}" -c 1 | sed '1{s/[^(]*(//;s/).*//;q}')
@@ -236,6 +242,7 @@ tls_generate_script_install() {
     sucess_or_fail "安装 tls 证书生成脚本"
     source ~/.bashrc
 }
+
 tls_generate() {
   if [[ -f "/data/${domain}/fullchain.crt" ]] && [[ -f "/data/${domain}/privkey.key" ]]; then
     echo -e "${Info}证书已存在……不需要再重新签发了……"
@@ -266,6 +273,7 @@ tls_generate() {
     fi
   fi
 }
+
 install_nginx() {
   if [[ -f ${nginx_bin_file} ]]; then
      echo -e "${Info} Nginx已存在，跳过编译安装过程 ${Font}"
@@ -339,6 +347,7 @@ install_nginx() {
     mkdir ${nginx_dir}/conf/conf.d
 fi
 }
+
 nginx_systemd() {
   touch ${nginx_systemd_file}
   cat >${nginx_systemd_file} <<EOF
@@ -359,30 +368,31 @@ EOF
   sucess_or_fail "Nginx systemd ServerFile 添加"
   systemctl daemon-reload
 }
+
 trojan_go_systemd(){
   touch ${trojan_systemd_file}
   cat >${trojan_systemd_file} << EOF
 [Unit]
-Description=trojan
-Documentation=https://github.com/p4gefau1t/trojan-go
-After=network.target
+Description=Trojan-Go - An unidentifiable mechanism that helps you bypass GFW
+Documentation=https://p4gefau1t.github.io/trojan-go/
+After=network.target nss-lookup.target
 
 [Service]
-Type=simple
-StandardError=journal
-PIDFile=/usr/src/trojan/trojan/trojan.pid
-ExecStart=/etc/trojan/bin/trojan-go -config /etc/trojan/conf/server.json
-ExecReload=
-ExecStop=/etc/trojan/bin/trojan-go
-LimitNOFILE=51200
+User=nobody
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
+NoNewPrivileges=true
+ExecStart=/usr/bin/trojan-go -config /etc/trojan-go/config.json
 Restart=on-failure
-RestartSec=1s
+RestartSec=10s
+LimitNOFILE=infinity
 
 [Install]
 WantedBy=multi-user.target
 EOF
 systemctl daemon-reload
 }
+
 uninstall_nginx() {
   if [[ -f ${nginx_bin_file} ]]; then
         echo -e "${Tip} 是否卸载 Nginx [Y/N]? "
@@ -396,36 +406,36 @@ uninstall_nginx() {
         esac
     fi
 }
+
 download_install(){
   [[ ! -d ${trojan_dir} ]] && mkdir ${trojan_dir}
   [[ ! -d ${trojan_bin_dir} ]] && mkdir ${trojan_bin_dir}
   if [[ ! -f ${trojan_bin_dir}/trojan-go ]];then
+      latest_version="$(curl -s "https://api.github.com/repos/p4gefau1t/trojan-go/releases" | jq '.[0].tag_name' --raw-output)"
+      echo "${latest_version}"
       case  ${bit} in
       "x86_64")
-        wget --no-check-certificate -O ${trojan_bin_dir}/trojan-go-linux-amd64.zip "https://github.com/p4gefau1t/trojan-go/releases/download/v0.4.10/trojan-go-linux-amd64.zip"
-        sucess_or_fail "trojan-go下载"
-        unzip -o -d ${trojan_bin_dir} ${trojan_bin_dir}/trojan-go-linux-amd64.zip
-        sucess_or_fail "trojan-go解压"
+        trojango_link="https://github.com/p4gefau1t/trojan-go/releases/download/${latest_version}/trojan-go-linux-amd64.zip"
         ;;
       "i386" | "i686")
-        wget --no-check-certificate -O ${trojan_bin_dir}/trojan-go-linux-386.zip "https://github.com/p4gefau1t/trojan-go/releases/download/v0.4.10/trojan-go-linux-386.zip"
-         sucess_or_fail "trojan-go下载"
-        unzip -o -d ${trojan_bin_dir} ${trojan_bin_dir}/trojan-go-linux-386.zip
-        sucess_or_fail "trojan-go解压"
+        trojango_link="https://github.com/p4gefau1t/trojan-go/releases/download/${latest_version}/trojan-go-linux-386.zip"
         ;;
       "armv7l")
-        wget --no-check-certificate -O ${trojan_bin_dir}/trojan-go-linux-armv7.zip "https://github.com/p4gefau1t/trojan-go/releases/download/v0.4.10/trojan-go-linux-armv7.zip"
-         sucess_or_fail "trojan-go下载"
-        unzip -o -d ${trojan_bin_dir} ${trojan_bin_dir}/trojan-go-linux-armv7.zip
-        sucess_or_fail "trojan-go解压"
+        trojango_link="https://github.com/p4gefau1t/trojan-go/releases/download/${latest_version}/trojan-go-linux-armv7.zip"
         ;;
       *)
         echo -e "${Error}不支持 [${bit}] ! 请向Jeannie反馈[]中的名称，会及时添加支持。" && exit 1
         ;;
       esac
-      rm -f ${trojan_bin_dir}/trojan-go-linux-amd64.zip
-      rm -f ${trojan_bin_dir}/trojan-go-linux-386.zip
-      rm -f ${trojan_bin_dir}/trojan-go-linux-armv7.zip
+      wget --no-check-certificate -O ${trojan_bin_dir}/trojan-go.zip "${trojango_link}"
+      sucess_or_fail "trojan-go下载"
+      unzip -o -d ${trojan_bin_dir} ${trojan_bin_dir}/trojan-go.zip
+      rm -f ${trojan_bin_dir}/trojan-go.zip
+      sucess_or_fail "trojan-go解压"
+      cd ${trojan_bin_dir}
+      mv geoip.dat ${trojan_conf_dir}/geoip.dat
+      mv geosite.dat ${trojan_conf_dir}/geosite.dat
+      mv example/trojan-go.service /etc/systemd/system/trojan-go.service
   else
     echo -e "${Info}trojan-go已存在，无需安装"
   fi
@@ -434,6 +444,7 @@ download_install(){
 trojan_go_uninstall(){
   [[ -d ${trojan_dir} ]] && rm -rf ${trojan_dir} && echo -e "${Info}Trojan-go卸载成功"
 }
+
 trojan_go_qr_config(){
   touch ${trojan_qr_config_file}
   cat >${trojan_qr_config_file} <<-EOF
@@ -446,9 +457,11 @@ trojan_go_qr_config(){
   "websocket_path":"${websocket_path}"
 EOF
 }
+
 trojan_info_extraction() {
   grep "$1" ${trojan_conf_file} | awk -F '"' '{print $4}'
 }
+
 trojan_go_conf(){
   [[ ! -d ${trojan_conf_dir} ]] && mkdir ${trojan_conf_dir}
   touch ${trojan_conf_file}
@@ -563,6 +576,7 @@ trojan_go_conf(){
 }
 EOF
 }
+
 trojan_client_conf(){
   uuid=$(cat /proc/sys/kernel/random/uuid)
   touch ${web_dir}/${uuid}.json
@@ -673,11 +687,13 @@ trojan_client_conf(){
 }
 EOF
 }
+
 web_download() {
   [[ ! -d "${web_dir}" ]] && mkdir "${web_dir}"
   wget -O ${web_dir}/web.zip --no-check-certificate https://github.com/PatrikYang/Trojan-go-OneKey/raw/main/web.zip
   unzip -o -d ${web_dir} ${web_dir}/web.zip
 }
+
 open_websocket(){
   echo -e "${Info}是否启用websocket协议?注意：开启这个选项不会改善你的链路速度（甚至有可能下降）"
   echo -e "${Info}如果启用了websocket协议,您就可以开启CDN了，如果用cloudflare解析域名的，搭建完成后可以点亮小云彩了。"
@@ -707,6 +723,7 @@ open_websocket(){
         ;;
     esac
 }
+
 trojan_go_basic_information() {
   {
 echo -e "
@@ -734,66 +751,7 @@ nginx_trojan_conf() {
 }
 EOF
 }
-install_caddy() {
-  if [[ -d ${caddy_bin_dir} ]] && [[ -f ${caddy_systemd_file} ]] && [[ -d ${caddy_conf_dir} ]]; then
-    read -rp "$(echo -e "${Tip}检测到已经安装了caddy,是否重新安装（Y/n）?(默认：n)")" Yn
-    [[ -z ${Yn} ]] && Yn="n"
-    case ${Yn} in
-    [yY][eE][sS] | [yY])
-        echo -e "${Info}开始安装caddy……"
-        sleep 2
-        curl https://getcaddy.com | bash -s personal hook.service
-        ;;
-    *)
-        ;;
-    esac
-  else
-    echo -e "${Info}开始安装caddy……"
-    sleep 2
-    curl https://getcaddy.com | bash -s personal hook.service
-  fi
-}
-install_caddy_service(){
-  echo -e "${Info}开始安装caddy后台管理服务……"
-  rm -f ${caddy_systemd_file}
-  #if [[ ${email} == "" ]]; then
-  #  read -p "$(echo -e "${Info}请填写您的邮箱：")" email
-  #  read -p "$(echo -e "${Info}邮箱输入正确吗（Y/n）？（默认：n）")" Yn
-  #  [[ -z ${Yn} ]] && Yn="n"
-  #  while [[ ${Yn} != "Y" ]] && [[ ${Yn} != "y" ]]; do
-  #      read -p "$(echo -e "${Tip}重新填写您的邮箱：")" email
-  #      read -p "$(echo -e "${Info}邮箱输入正确吗（Y/n）？（默认：n）")" Yn
-  #      [[ -z ${Yn} ]] && Yn="n"
-  #  done
- #fi
- #caddy -service install -agree -email "${email}" -conf "${caddy_conf}"
- caddy -service install -agree -email "example@gmail.com" -conf "${caddy_conf}"
- sucess_or_fail "caddy后台管理服务安装"
-}
-caddy_trojan_conf() {
-   [[ ! -d ${caddy_conf_dir} ]] && mkdir ${caddy_conf_dir}
-  touch ${caddy_conf}
-  cat >${caddy_conf} <<_EOF
-http://${domain}:80 {
-  gzip
-  timeouts none
-  tls /data/${domain}/fullchain.crt /data/${domain}/privkey.key {
-       protocols tls1.0 tls1.3
-    }
-  root ${web_dir}
-}
-_EOF
-}
-uninstall_caddy() {
-  if [[ -f ${caddy_bin_dir}/caddy ]] || [[ -f ${caddy_systemd_file} ]] || [[ -d ${caddy_conf_dir} ]] || [[ -f ${caddy_bin_dir}/caddy_old ]]; then
-    echo -e "${Info}开始卸载Caddy……"
-    [[ -f ${caddy_bin_dir}/caddy ]] && rm -f ${caddy_bin_dir}/caddy
-    [[ -f ${caddy_bin_dir}/caddy_old ]] && rm -f ${caddy_bin_dir}/caddy_old
-    [[ -d ${caddy_conf_dir} ]] && rm -rf ${caddy_conf_dir}
-    [[ -f ${caddy_systemd_file} ]] && rm -f ${caddy_systemd_file}
-    echo -e "${Info}Caddy卸载成功！"
-  fi
-}
+
 port_used_check() {
     if [[ 0 -eq $(lsof -i:"$1" | grep -i -c "listen") ]]; then
         echo -e "${Info} $1 端口未被占用"
@@ -808,19 +766,23 @@ port_used_check() {
         sleep 1
     fi
 }
+
 install_bbr() {
   wget -N --no-check-certificate "https://raw.githubusercontent.com/chiakge/Linux-NetSpeed/master/tcp.sh"
   chmod +x tcp.sh
   ./tcp.sh
 }
+
 download_trojan_mgr(){
   curl -s -o /etc/trojan_mgr.sh https://raw.githubusercontent.com/JeannieStudio/all_install/master/trojan_mgr.sh
   sucess_or_fail "修改密码、混淆密码、启用/禁用websocket、查询证书相关信息的管理脚本下载"
   chmod +x /etc/trojan_mgr.sh
 }
+
 remove_trojan_mgr(){
   [[ -f /etc/trojan_mgr.sh ]] && rm -f /etc/trojan_mgr.sh && echo -e "${Info}trojan_mgr.sh删除成功"
 }
+
 trojan_go_info_html() {
   vps="Trojan-go"
   wget --no-check-certificate -O ${web_dir}/trojan_go_tmpl.html https://raw.githubusercontent.com/JeannieStudio/jeannie/master/trojan_go_tmpl.html
@@ -830,6 +792,7 @@ eval "cat <<EOF
 EOF
 " >${web_dir}/${uuid}.html
 }
+
 trojan_nginx_install(){
   check_root
   check_sys
@@ -843,7 +806,6 @@ trojan_nginx_install(){
   port_used_check 443
   uninstall_web
   remove_trojan_mgr
-  uninstall_caddy
   get_ip
   check_domain
   tls_generate_script_install
@@ -866,51 +828,15 @@ trojan_nginx_install(){
 	download_trojan_mgr
   trojan_go_basic_information
 }
-trojan_caddy_install(){
-  check_root
-  # shellcheck disable=SC2164
-  cd /root
-  set_SELINUX
-  check_sys
-  sys_cmd
-  sucess_or_fail
-  install_dependency
-  #close_firewall
-  download_install
-  port_used_check 80
-  port_used_check 443
-  uninstall_web
-  remove_trojan_mgr
-  uninstall_nginx
-  get_ip
-  check_domain
-  tls_generate_script_install
-  tls_generate
-  web_download
-  #generate_trojan_go_tls
-  trojan_go_conf
-  trojan_client_conf
-  open_websocket
-  trojan_go_qr_config
-  install_caddy
-  install_caddy_service
-  caddy_trojan_conf
-  caddy -service start
-  trojan_go_info_html
-  trojan_go_systemd
-  systemctl start trojan.service
-	systemctl enable trojan.service
-	download_trojan_mgr
-  trojan_go_basic_information
-}
+
 uninstall_all(){
   uninstall_nginx
   trojan_go_uninstall
-  uninstall_caddy
   uninstall_web
   remove_trojan_mgr
   echo -e "${Info}卸载完成，系统回到初始状态！"
 }
+
 main() {
   echo -e "
 ${FUCHSIA}===================================================
@@ -921,7 +847,7 @@ ${GREEN}因为安装的同时会执行卸载，除非想卸载干净回到初始
 ${FUCHSIA}===================================================
 ${GREEN}1. 安装trojan-go + nginx +tls
 ${FUCHSIA}===================================================
-${GREEN}2. 安装trojan-go + caddy +tls
+${GREEN}2. 安装trojan-go 管理面板
 ${FUCHSIA}===================================================
 ${GREEN}3. 卸载全部，系统回到初始状态
 ${FUCHSIA}===================================================
@@ -934,7 +860,7 @@ ${GREEN}0. 啥也不做，退出${NO_COLOR}"
     trojan_nginx_install
     ;;
   2)
-    trojan_caddy_install
+    download_trojan_mgr
     ;;
   3)
     uninstall_all
