@@ -373,20 +373,19 @@ trojan_go_systemd(){
   touch ${trojan_systemd_file}
   cat >${trojan_systemd_file} << EOF
 [Unit]
-Description=Trojan-Go - An unidentifiable mechanism that helps you bypass GFW
-Documentation=https://p4gefau1t.github.io/trojan-go/
-After=network.target nss-lookup.target
-
+Description=trojan
+Documentation=https://github.com/p4gefau1t/trojan-go
+After=network.target
 [Service]
-User=nobody
-CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
-AmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
-NoNewPrivileges=true
+Type=simple
+StandardError=journal
+PIDFile=/usr/src/trojan/trojan/trojan.pid
 ExecStart=/usr/bin/trojan-go/trojan-go -config /etc/trojan-go/config.json
+ExecReload=
+ExecStop=/usr/bin/trojan-go/trojan-go
+LimitNOFILE=51200
 Restart=on-failure
-RestartSec=10s
-LimitNOFILE=infinity
-
+RestartSec=1s
 [Install]
 WantedBy=multi-user.target
 EOF
