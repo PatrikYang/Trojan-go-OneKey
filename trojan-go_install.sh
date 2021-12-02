@@ -382,7 +382,7 @@ User=nobody
 CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
 AmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
 NoNewPrivileges=true
-ExecStart=/usr/bin/trojan-go -config /etc/trojan-go/config.json
+ExecStart=/usr/bin/trojan-go/trojan-go -config /etc/trojan-go/config.json
 Restart=on-failure
 RestartSec=10s
 LimitNOFILE=infinity
@@ -435,7 +435,6 @@ download_install(){
       cd ${trojan_bin_dir}
       mv geoip.dat ${trojan_conf_dir}/geoip.dat
       mv geosite.dat ${trojan_conf_dir}/geosite.dat
-      mv example/trojan-go.service /etc/systemd/system/trojan-go.service
   else
     echo -e "${Info}trojan-go已存在，无需安装"
   fi
