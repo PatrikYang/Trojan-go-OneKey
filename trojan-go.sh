@@ -191,7 +191,7 @@ ngnix_conf(){
     	#gzip  on;
     	server {
         	listen	80;
-        	server_name  "${domain}";
+        	server_name  ${domain};
         	root /usr/share/nginx/html;
         	index index.php index.html index.htm;
     	}
