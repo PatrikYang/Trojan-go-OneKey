@@ -427,7 +427,7 @@ download_install(){
         echo -e "${Error}不支持 [${bit}] ! 请向Jeannie反馈[]中的名称，会及时添加支持。" && exit 1
         ;;
       esac
-      wget --no-check-certificate -O ${trojan_bin_dir}/trojan-go.zip "${trojango_link}"
+      wget --no-check-certificate -O ${trojan_bin_dir}/trojan-go.zip ${trojango_link}
       sucess_or_fail "trojan-go下载"
       unzip -o -d ${trojan_bin_dir} ${trojan_bin_dir}/trojan-go.zip
       rm -f ${trojan_bin_dir}/trojan-go.zip
