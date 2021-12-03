@@ -1,3 +1,5 @@
+Debian9系统可正常工作，推荐安装锐速进行加速https://github.com/PatrikYang/LotServer-1
+
 ```
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/PatrikYang/Trojan-go-OneKey/main/trojan-go.sh)"
 ```
