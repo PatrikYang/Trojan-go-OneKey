@@ -143,25 +143,9 @@ trojan_conf() {
         	"${password}"
     	],
     	"ssl": {
-		"verify": true,
-    		"verify_hostname": true,
         	"cert": "/data/${domain}/fullchain.cer",
         	"key": "/data/${domain}/private.key",
-		"key_password": "",
-    		"cipher": "",
-    		"cipher_tls13": "",
-    		"curves": "",
-    		"prefer_server_cipher": false,
         	"sni": "${domain}"
-		"alpn": [
-      			"http/1.1"
-    		],
-    		"session_ticket": true,
-    		"reuse_session": true,
-    		"plain_http_response": "",
-    		"fallback_port": 1234,
-    		"fingerprint": "firefox",
-    		"serve_plain_text": false
     	},
     	"router": {
         	"enabled": true,
