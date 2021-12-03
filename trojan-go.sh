@@ -244,3 +244,4 @@ case "$num" in
 	echo "请输入正确的数字"
 	;;
 esac
+
