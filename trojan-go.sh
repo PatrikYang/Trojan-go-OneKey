@@ -111,6 +111,8 @@ tls_generate() {
 			exit 1
 		fi
 	fi
+	chmod 755 /data/${domain}/fullchain.cer
+	chmod 755 /data/${domain}/private.key
 }
 
 download_trojan() {
