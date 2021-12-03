@@ -143,17 +143,17 @@ trojan_conf() {
         	"${password}"
     	],
     	"ssl": {
-			"verify": true,
+		"verify": true,
     		"verify_hostname": true,
         	"cert": "/data/${domain}/fullchain.cer",
         	"key": "/data/${domain}/private.key",
-			"key_password": "",
+		"key_password": "",
     		"cipher": "",
     		"cipher_tls13": "",
     		"curves": "",
     		"prefer_server_cipher": false,
         	"sni": "${domain}"
-			"alpn": [
+		"alpn": [
       			"http/1.1"
     		],
     		"session_ticket": true,
