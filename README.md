@@ -1,5 +1,5 @@
 ## Debian9系统可正常工作
-## 推荐安装锐速进行加速  https://github.com/PatrikYang/LotServer-Debian9
+## 推荐安装锐速进行加速  https://github.com/PatrikYang/lotServer
 
 ## 下列两种方式都可运行
 ```
